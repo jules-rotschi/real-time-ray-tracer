@@ -1,0 +1,10 @@
+imgui.ini
+
+/.vs
+RealTimeRayTracer.sln
+**.vcxproj
+**.vcxproj.filters
+**.vcxproj.user
+
+/obj
+/bin
