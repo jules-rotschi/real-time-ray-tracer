@@ -4,7 +4,7 @@
 
 namespace RayTracer
 {
-	Vector3::Vector3(double x, double y, double z)
+	Vector3::Vector3(float x, float y, float z)
 		: X(x), Y(y), Z(z) { }
 
 	bool Vector3::IsNearlyNull() const
@@ -15,12 +15,12 @@ namespace RayTracer
 		return isXNearlyNull && isYNearlyNull && isZNearlyNull;
 	}
 
-	double Vector3::GetLength() const
+	float Vector3::GetLength() const
 	{
 		return std::sqrt(GetSquaredLength());
 	}
 
-	double Vector3::GetSquaredLength() const
+	float Vector3::GetSquaredLength() const
 	{
 		return X * X + Y * Y + Z * Z;
 	}
@@ -35,18 +35,18 @@ namespace RayTracer
 		return *this - 2 * Dot(*this, normal) * normal;
 	}
 
-	Vector3 Vector3::Refract(const Vector3& unitNormal, double refractiveIndicesRatio) const
+	Vector3 Vector3::Refract(const Vector3& unitNormal, float refractiveIndicesRatio) const
 	{
 		Vector3 orthogonalComponent = refractiveIndicesRatio * (*this + Dot(*this, -unitNormal) * unitNormal);
 		Vector3 collinearComponent = std::sqrt(1 - orthogonalComponent.GetSquaredLength()) * -unitNormal;
 		return orthogonalComponent + collinearComponent;
 	}
 
-	Vector3 Vector3::Rotate(double angle, const Vector3& axis) const
+	Vector3 Vector3::Rotate(float angle, const Vector3& axis) const
 	{
 		Vector3 u = axis.GetUnitVector();
-		double c = std::cos(angle);
-		double s = std::sin(angle);
+		float c = std::cos(angle);
+		float s = std::sin(angle);
 
 		return {
 			X * (u.X * u.X * (1 - c) + c)
@@ -75,7 +75,7 @@ namespace RayTracer
 		return *this;
 	}
 
-	Vector3& Vector3::operator*=(double t)
+	Vector3& Vector3::operator*=(float t)
 	{
 		X *= t;
 		Y *= t;
@@ -83,7 +83,7 @@ namespace RayTracer
 		return *this;
 	}
 
-	Vector3& Vector3::operator/=(double t)
+	Vector3& Vector3::operator/=(float t)
 	{
 		*this *= 1 / t;
 		return *this;
@@ -101,18 +101,18 @@ namespace RayTracer
 		return v1;
 	}
 
-	Vector3 operator*(Vector3 v, double t)
+	Vector3 operator*(Vector3 v, float t)
 	{
 		v *= t;
 		return v;
 	}
 
-	Vector3 operator*(double t, Vector3 v)
+	Vector3 operator*(float t, Vector3 v)
 	{
 		return v * t;
 	}
 
-	Vector3 operator/(Vector3 v, double t)
+	Vector3 operator/(Vector3 v, float t)
 	{
 		v /= t;
 		return v;
@@ -123,7 +123,7 @@ namespace RayTracer
 		return -1 * v;
 	}
 
-	double Dot(const Vector3& v1, const Vector3& v2)
+	float Dot(const Vector3& v1, const Vector3& v2)
 	{
 		return v1.X * v2.X + v1.Y * v2.Y + v1.Z * v2.Z;
 	}

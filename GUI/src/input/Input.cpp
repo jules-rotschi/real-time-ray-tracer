@@ -3,7 +3,7 @@
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
-#include "Application.h"
+#include "../Application.h"
 
 namespace GUI::Input
 {

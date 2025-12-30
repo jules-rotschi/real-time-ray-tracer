@@ -5,29 +5,40 @@ namespace RayTracer
 	Scene::Scene(const Vector3& skyColor)
 		: m_SkyColor(skyColor) {}
 
-	void Scene::AddMaterial(const Material& material)
+	uint32_t Scene::AddMaterial(const Material& material)
 	{
-		return m_Materials.push_back(material.GetUniquePtr());
+		m_Materials.push_back(material);
+		return static_cast<uint32_t>(m_Materials.size() - 1);
 	}
 
-	void Scene::AddObject(const Object& object)
+	void Scene::AddSphere(const Sphere& sphere)
 	{
-		return m_Objects.push_back(object.GetUniquePtr());
+		m_Spheres.push_back(sphere);
 	}
 
-	const std::unique_ptr<Material>& Scene::GetMaterial(uint32_t index) const
+	void Scene::AddTriangle(const Triangle& triangle)
 	{
-		return m_Materials[index];
+		m_Triangles.push_back(triangle);
 	}
 
-	const std::vector<std::unique_ptr<Object>>& Scene::GetObjects() const
+	const std::vector<Material>& Scene::GetMaterials() const
 	{
-		return m_Objects;
+		return m_Materials;
 	}
 
-	uint32_t Scene::GetMaterialsCount() const
+	std::vector<Material>& Scene::GetMaterials()
 	{
-		return m_Materials.size();
+		return m_Materials;
+	}
+
+	const std::vector<Sphere>& Scene::GetSpheres() const
+	{
+		return m_Spheres;
+	}
+
+	std::vector<Sphere>& Scene::GetSpheres()
+	{
+		return m_Spheres;
 	}
 
 	Vector3 Scene::GetSkyColor() const

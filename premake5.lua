@@ -55,6 +55,7 @@ project "RealTimeApplication"
    files { "RealTimeApplication/src/**.h", "RealTimeApplication/src/**.cpp" }
    includedirs { "RealTimeApplication/src", "RayTracer/src", "GUI/src", "GUI/vendors/include", "GUI/vendors/include/imgui" }
    links { "GUI", "RayTracer" }
+   debugdir "."
 
    filter "configurations:Debug"
       defines { "DEBUG" }

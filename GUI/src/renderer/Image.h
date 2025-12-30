@@ -6,12 +6,14 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-namespace GUI
+#include "Texture.h"
+
+namespace GUI::Renderer
 {
 	class Image
 	{
 	public:
-		Image();
+		Image(uint32_t width, uint32_t height);
 
 		void Resize(uint32_t width, uint32_t height);
 		void SetData(const uint8_t* pixelBuffer) const;
@@ -25,10 +27,7 @@ namespace GUI
 		void InitTexture();
 
 	private:
-		GLuint m_Texture = 0;
-
-		uint32_t m_Width = 800;
-		uint32_t m_Height = 600;
+		Texture m_Texture;
 	};
 }
 

@@ -13,12 +13,13 @@ A real time application that renders ray traced images of scenes with spheres an
 - Camera realistic settings (exposure, focal length, depth of field)
 - Focus peaking (sharpness highlighting)
 - Scene settings (materials, spheres positions and radiuses)
-- Export to PPM file
+- GPU rendering
 
 ## Upcoming features
 
-- GPU rendering
-- More shapes for scene objects
+- Export to PPM file (come back)
+- Triangles & complex scenes
+- Bloom
 - More control over scene from UI
 
 ## Buiding

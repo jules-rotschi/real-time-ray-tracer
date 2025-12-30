@@ -6,5 +6,5 @@ RealTimeRayTracer.sln
 **.vcxproj.filters
 **.vcxproj.user
 
-/obj
-/bin
+*/obj
+*/bin

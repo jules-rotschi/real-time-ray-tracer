@@ -3,7 +3,7 @@
 #include <array>
 
 #include "Layer.h"
-#include "Input.h"
+#include "Input/Input.h"
 
 #include "Renderer.h"
 #include "Scene.h"

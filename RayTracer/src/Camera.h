@@ -12,9 +12,9 @@ namespace RayTracer
 	public:
 		struct Sensor
 		{
-			double Width = 0.036;
-			double Height = 0.024;
-			int Sensivity = 800;
+			float Width = 0.036f;
+			float Height = 0.024f;
+			int Sensitivity = 800;
 			float Gamma = 0.45f;
 		};
 
@@ -33,26 +33,22 @@ namespace RayTracer
 			const Vector3& viewUp,
 			const Sensor& sensor,
 			const Lens& lens,
-			double shutterSpeed
+			float shutterSpeed
 		);
 
-		double GetExposure() const;
-		Vector3 GetPixel(const Vector3& luminance) const;
-
-		Vector3 GetRayOrigin(bool depthOfField, uint32_t& seed) const;
-		Vector3 GetVirtualPixelPosition(int x, int y, bool antialiasing, uint32_t& seed) const;
-		Vector3 GetVirtualPixelPosition(int x, int y) const;
-
 		Vector3 GetPosition() const;
+		Trihedron GetTrihedron() const;
+
 		const Sensor& GetSensor() const;
 		const Lens& GetLens() const;
+
 		Sensor& GetSensor();
 		Lens& GetLens();
 
-		double GetNeutralDensity() const;
+		float GetNeutralDensity() const;
 
-		void AddNDFilter(double density);
-		void RemoveNDFilter(double density);
+		void AddNDFilter(float density);
+		void RemoveNDFilter(float density);
 
 		void ResetSettings();
 
@@ -61,13 +57,10 @@ namespace RayTracer
 		void MoveLeft(double dt);
 		void MoveRight(double dt);
 
-		void Rotate(double panRotation, double tiltRotation, double dt);
+		void Rotate(float panRotation, float tiltRotation, double dt);
 
 		void OnUpdate(bool& hasMoved);
 		void OnResize(uint32_t width, uint32_t height);
-
-	private:
-		void ComputeVirtualPixelPositions();
 
 	private:
 		Vector3 m_Position;
@@ -80,17 +73,19 @@ namespace RayTracer
 		uint32_t m_ImageHeight = 1;
 
 		std::vector<Vector3> m_VirtualPixelPositions;
-		double m_VirtualPixelDimension;
+		float m_VirtualPixelDimension;
 
-		double m_LastFocalLength = m_Lens.FocalLength;
-		double m_LastFocusDistance = m_Lens.FocusDistance;
-		double m_LastAperture = m_Lens.Aperture;
+		float m_LastFocalLength = m_Lens.FocalLength;
+		float m_LastFocusDistance = m_Lens.FocusDistance;
+		float m_LastAperture = m_Lens.Aperture;
 
-		double m_ShutterSpeed = 1.0 / 50.0;
-		double m_NeutralDensityValue = 0;
+		float m_ShutterSpeed = 1.0f / 50.0f;
+		float m_NeutralDensityValue = 0;
 
-		double m_Speed = 10.0;
-		double m_RotationSpeed = 10.0;
+		float m_Speed = 10.0;
+		float m_RotationSpeed = 10.0;
+
+		friend class ShaderDataManager;
 	};
 }
 

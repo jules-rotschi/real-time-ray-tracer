@@ -10,68 +10,51 @@
 #include "imgui_impl_opengl3.h"
 
 #include "Application.h"
-#include "Image.h"
-#include "Input.h"
+#include "renderer/Image.h"
 
 #include "Vector3.h"
-#include "Random.h"
-#include "Material.h"
-#include "Sphere.h"
 
 #include "Encoder.h"
 
 AppLayer::AppLayer()
-    : m_Scene({ 10.0, 20.0, 40.0 }),
+    : m_Scene({ 10.0f, 20.0f, 40.0f }),
     m_Camera(
-        { 0.0, 2.0, 8.0 },
-        { 0.0, -1.0, -5.0 },
-        { 0.0, 1.0, 0.0 },
+        { 0.0f, 2.0f, 8.0f },
+        { 0.0f, -1.0f, -5.0f },
+        { 0.0f, 1.0f, 0.0f },
         RayTracer::Camera::Sensor{},
-        { 0.05f, 8.0, 2.8f },
-        1.0 / 50.0
+        { 0.05f, 8.0f, 2.8f },
+        1.0f / 50.0f
     )
 {
     std::map<std::string_view, uint32_t> materials;
 
     // Diffuse colors
-    m_Scene.AddMaterial(RayTracer::Opaque({ 0.5, 0.5, 0.5 }, 0.0, 0.0));
-    materials["Grey"] = 0;
-
-    m_Scene.AddMaterial(RayTracer::Opaque({ 0.8, 0.4, 0.4 }, 0.0, 0.0));
-    materials["Red"] = 1;
+    uint32_t grey = m_Scene.AddMaterial({ true, { 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f, 0.0f }, 0.0f, 0.0f, 1.0f });
+    uint32_t red = m_Scene.AddMaterial({ true, { 0.8f, 0.4f, 0.4f }, { 0.0f, 0.0f, 0.0f }, 0.0f, 0.0f, 1.0f });
 
     // Metals
-    m_Scene.AddMaterial(RayTracer::Opaque({ 0.9, 0.9, 0.9 }, 0.01, 1));
-    materials["Metal"] = 2;
-
-    m_Scene.AddMaterial(RayTracer::Opaque({ 0.9, 0.9, 0.9 }, 0.1, 1));
-    materials["Fuzzy metal"] = 3;
+    uint32_t metal = m_Scene.AddMaterial({ true, { 0.9f, 0.9f, 0.9f }, { 0.0f, 0.0f, 0.0f }, 0.01f, 1.0f, 1.0f });
+    uint32_t fuzzyMetal = m_Scene.AddMaterial({ true, { 0.9f, 0.9f, 0.9f }, { 0.0f, 0.0f, 0.0f }, 0.1f, 1.0f, 1.0f });
 
     // Clears
-    m_Scene.AddMaterial(RayTracer::Clear(1.52, { 0.8, 1, 0.8 }, 0.1));
-    materials["Glass"] = 4;
+    uint32_t glass = m_Scene.AddMaterial({ false, { 0.8f, 1.0f, 0.8f }, { 0.0f, 0.0f, 0.0f }, 0.1f, 1.0f, 1.52f });
 
     // Lights
-    m_Scene.AddMaterial(RayTracer::Emissive({ 0.1, 0.1, 0.1 }, { 1, 1, 1 }, 20000));
-    materials["White light"] = 5;
-    
-    m_Scene.AddMaterial(RayTracer::Emissive({ 0.1, 0.1, 0.1 }, { 1, 0.5, 0.25 }, 20000));
-    materials["Warm light"] = 6;
+    uint32_t whiteLight = m_Scene.AddMaterial({ true, { 0.1f, 0.1f, 0.1f }, { 20000.0f, 20000.0f, 20000.0f }, 1.0f, 0.0f, 1.0f });
+    uint32_t warmLight = m_Scene.AddMaterial({ true, { 0.1f, 0.1f, 0.1f }, { 20000.0f, 10000.0f, 5000.0f }, 1.0f, 0.0f, 1.0f });
 
     // Shiny
-    m_Scene.AddMaterial(RayTracer::Opaque({ 0.9, 0.9, 0.9 }, 0.01, 0.5));
-    materials["Ceramic"] = 7;
-    
-    m_Scene.AddMaterial(RayTracer::Opaque({ 0.4, 0.5, 0.5 }, 0.3, 0.2));
-    materials["Tiling"] = 8;
+    uint32_t ceramic = m_Scene.AddMaterial({ true, { 0.9f, 0.9f, 0.9f }, { 0.0f, 0.0f, 0.0f }, 0.01f, 0.5f, 1.0f });
+    uint32_t tiling = m_Scene.AddMaterial({ true, { 0.4f, 0.5f, 0.5f }, { 0.0f, 0.0f, 0.0f }, 0.3f, 0.2f, 1.0f });
 
-    m_Scene.AddObject(RayTracer::Sphere({ 0.0, -100.5, 0.0 }, 100, materials["Tiling"])); // ground
-    m_Scene.AddObject(RayTracer::Sphere({ -1.0, 0.0, -2.0 }, 0.5, materials["Red"]));
-    m_Scene.AddObject(RayTracer::Sphere({ -1.5, 0, 0 }, 0.5, materials["Ceramic"]));
-    m_Scene.AddObject(RayTracer::Sphere({ 1.5, 0, -0.5 }, 0.5, materials["Fuzzy metal"]));
-    m_Scene.AddObject(RayTracer::Sphere({ 0, 0, 0 }, 0.5, materials["Glass"]));
-    m_Scene.AddObject(RayTracer::Sphere({ -3, 2, 2 }, 1, materials["White light"])); // key light
-    m_Scene.AddObject(RayTracer::Sphere({ 3, 150, -150 }, 50, materials["Warm light"])); // back light
+    m_Scene.AddSphere({ { 0.0f, -100.5f, 0.0f }, 100.0f, tiling }); // ground
+    m_Scene.AddSphere({ { -1.0f, 0.0f, -2.0f }, 0.5f, red });
+    m_Scene.AddSphere({ { -1.5f, 0.0f, 0.0f }, 0.5f, ceramic });
+    m_Scene.AddSphere({ { 1.5f, 0.0f, -0.5f }, 0.5f, fuzzyMetal });
+    m_Scene.AddSphere({ { 0.0f, 0.0f, 0.0f }, 0.5f, glass });
+    m_Scene.AddSphere({ { -3.0f, 2.0f, 2.0f }, 1.0f, whiteLight }); // key light
+    m_Scene.AddSphere({ { 3.0f, 150.0f, -150.0f }, 50.0f, warmLight }); // back light
 }
 
 void AppLayer::OnUpdate(double dt)
@@ -84,8 +67,8 @@ void AppLayer::OnUpdate(double dt)
     {
         glfwSetInputMode(GUI::Application::Get().GetWindow().GetHandle(), GLFW_CURSOR, GLFW_CURSOR_NORMAL + 2);
 
-        double deltaX = (currentMousePosition.X - m_LastMousePosition.X) * 0.002f;
-        double deltaY = (currentMousePosition.Y - m_LastMousePosition.Y) * 0.002f;
+        float deltaX = static_cast<float>(currentMousePosition.X - m_LastMousePosition.X) * 0.002f;
+        float deltaY = static_cast<float>(currentMousePosition.Y - m_LastMousePosition.Y) * 0.002f;
 
         m_Camera.Rotate(
             -deltaX,
@@ -166,32 +149,35 @@ void AppLayer::OnRender()
 
     if (!m_Renderer.GetSettings().Preview)
     {
+        int depth = m_Renderer.GetSettings().Depth;
+
         ImGui::Checkbox("Accumulate", &m_Renderer.GetSettings().Accumulation);
-        ImGui::DragInt("Depth", &m_Renderer.GetSettings().Depth, 1.0f, 1, 10);
+        ImGui::DragInt("Depth", &depth, 1.0f, 1, 100);
         ImGui::Checkbox("Antialiasing", &m_Renderer.GetSettings().Antialiasing);
         ImGui::Checkbox("Depth of field", &m_Renderer.GetSettings().DepthOfField);
+
+        m_Renderer.GetSettings().Depth = depth;
     }
 
     ImGui::Checkbox("Focus peaking", &m_Renderer.GetSettings().FocusPeaking);
-
     
-    ImGui::InputText("Filename", &m_ExportFilename[0], 255);
+    //ImGui::InputText("Filename", &m_ExportFilename[0], 255);
 
-    if (ImGui::Button("Export PPM"))
-    {
-        m_HasUserExported = true;
-        m_HasExportSucceeded = EncodePPM(&m_ExportFilename[0], m_ViewportWidth, m_ViewportHeight, m_Renderer.GetImageData());
-    }
+    //if (ImGui::Button("Export PPM"))
+    //{
+    //    m_HasUserExported = true;
+    //    m_HasExportSucceeded = EncodePPM(&m_ExportFilename[0], m_ViewportWidth, m_ViewportHeight, m_Renderer.GetImageData());
+    //}
 
-    if (m_HasUserExported)
-    {
-        ImGui::Separator();
+    //if (m_HasUserExported)
+    //{
+    //    ImGui::Separator();
 
-        if (m_HasExportSucceeded)
-            ImGui::Text("Image has been exported !");
-        else
-            ImGui::Text("Failed to export : file already exists.");
-    }
+    //    if (m_HasExportSucceeded)
+    //        ImGui::Text("Image has been exported !");
+    //    else
+    //        ImGui::Text("Failed to export : file already exists.");
+    //}
 
     ImGui::Separator();
 
@@ -208,14 +194,14 @@ void AppLayer::OnRender()
 
     ImGui::Text("Position : %.2f ; %.2f ; %.2f", m_Camera.GetPosition().X, m_Camera.GetPosition().Y, m_Camera.GetPosition().Z);
     ImGui::Text("Gamma: %.2f", m_Camera.GetSensor().Gamma);
-    ImGui::Text("Sensivity: %d ASA", m_Camera.GetSensor().Sensivity);
+    ImGui::Text("Sensivity: %d ASA", m_Camera.GetSensor().Sensitivity);
     ImGui::Text("Aperture: f/%.1f", m_Camera.GetLens().Aperture);
     ImGui::Text("Focal length: %.0fmm", m_Camera.GetLens().FocalLength * 1000.0f);
     ImGui::Text("Focus distance: %.0fm", m_Camera.GetLens().FocusDistance);
     ImGui::Text("Neutral density: %.1f", m_Camera.GetNeutralDensity());
 
     ImGui::DragFloat("Gamma", &m_Camera.GetSensor().Gamma, 0.05f, 0.1f, 1.0f);
-    ImGui::DragInt("Sensivity", &m_Camera.GetSensor().Sensivity, 100.0f, 100, 12800);
+    ImGui::DragInt("Sensivity", &m_Camera.GetSensor().Sensitivity, 100.0f, 100, 12800);
     ImGui::DragFloat("Aperture", &m_Camera.GetLens().Aperture, 0.1f, 1.0f, 32.0f);
     ImGui::DragFloat("Focal length", &m_Camera.GetLens().FocalLength, 0.005f, 0.014f, 1.0f);
     if (m_Renderer.GetSettings().DepthOfField)
@@ -225,12 +211,12 @@ void AppLayer::OnRender()
 
     if (ImGui::Button("Add ND"))
     {
-        m_Camera.AddNDFilter(0.3);
+        m_Camera.AddNDFilter(0.3f);
     }
 
     if (ImGui::Button("Remove ND"))
     {
-        m_Camera.RemoveNDFilter(0.3);
+        m_Camera.RemoveNDFilter(0.3f);
     }
 
     if (ImGui::Button("Reset camera settings"))
@@ -243,12 +229,12 @@ void AppLayer::OnRender()
     ImGui::Begin("Scene settings");
 
     RayTracer::Vector3 unitSkyColor = m_Scene.GetSkyColor().GetUnitVector();
-    float skyColorIntensity = static_cast<float>(m_Scene.GetSkyColor().GetLength());
+    float skyColorIntensity = m_Scene.GetSkyColor().GetLength();
 
     std::array<float, 3> skyColor = {
-            static_cast<float>(unitSkyColor.R),
-            static_cast<float>(unitSkyColor.G),
-            static_cast<float>(unitSkyColor.B)
+        unitSkyColor.R,
+        unitSkyColor.G,
+        unitSkyColor.B
     };
 
     ImGui::ColorEdit3("Sky color", &skyColor[0]);
@@ -263,74 +249,50 @@ void AppLayer::OnRender()
 
     ImGui::Text("Materials");
 
-    for (uint32_t i = 0; i < m_Scene.GetMaterialsCount(); i++)
+    for (uint32_t i = 0; i < m_Scene.GetMaterials().size(); i++)
     {
         ImGui::PushID(i);
 
-        const std::unique_ptr<RayTracer::Material>& material = m_Scene.GetMaterial(i);
+        RayTracer::Material& material = m_Scene.GetMaterials()[i];
 
         std::array<float, 3> albedo = {
-            static_cast<float>(material->GetAlbedo().R),
-            static_cast<float>(material->GetAlbedo().G),
-            static_cast<float>(material->GetAlbedo().B)
+            material.Albedo.R,
+            material.Albedo.G,
+            material.Albedo.B
         };
 
         ImGui::BulletText("Material %d", i);
         ImGui::ColorEdit3("Albedo", &albedo[0]);
 
-        material->r_GetAlbedo().R = albedo[0];
-        material->r_GetAlbedo().G = albedo[1];
-        material->r_GetAlbedo().B = albedo[2];
+        material.Albedo.R = albedo[0];
+        material.Albedo.G = albedo[1];
+        material.Albedo.B = albedo[2];
 
-        RayTracer::Emissive* emissiveMaterial = dynamic_cast<RayTracer::Emissive*>(material.get());
-
-        if (emissiveMaterial)
+        if (float emittedColorIntensity = material.EmittedColor.GetLength(); emittedColorIntensity != 0.0f)
         {
-            RayTracer::Vector3 unitEmittedColor = emissiveMaterial->GetEmittedColor().GetUnitVector();
-            float emittedColorIntensity = static_cast<float>(emissiveMaterial->GetEmittedColor().GetLength());
+            RayTracer::Vector3 unitEmittedColor = material.EmittedColor.GetUnitVector();
 
             std::array<float, 3> emittedColor = {
-                static_cast<float>(unitEmittedColor.R),
-                static_cast<float>(unitEmittedColor.G),
-                static_cast<float>(unitEmittedColor.B)
+                unitEmittedColor.R,
+                unitEmittedColor.G,
+                unitEmittedColor.B
             };
 
             ImGui::ColorEdit3("Emitted color", &emittedColor[0]);
             ImGui::DragFloat("Emitted light", &emittedColorIntensity, 1.0f, 1.0f, 1000000.0f);
 
-            emissiveMaterial->r_GetEmittedColor().R = emittedColor[0];
-            emissiveMaterial->r_GetEmittedColor().G = emittedColor[1];
-            emissiveMaterial->r_GetEmittedColor().B = emittedColor[2];
-            emissiveMaterial->r_GetEmittedColor() *= emittedColorIntensity;
+            material.EmittedColor.R = emittedColor[0];
+            material.EmittedColor.G = emittedColor[1];
+            material.EmittedColor.B = emittedColor[2];
+            material.EmittedColor *= emittedColorIntensity;
         }
 
+        ImGui::DragFloat("Roughness", &material.Roughness, 0.01f, 0.0f, 1.0f);
+        ImGui::DragFloat("Shine", &material.Shine, 0.01f, 0.0f, 1.0f);
 
-        float roughness = static_cast<float>(material->GetRoughness());
-
-        ImGui::DragFloat("Roughness", &roughness, 0.01f, 0.0f, 1.0f);
-
-        material->r_GetRoughness() = roughness;
-
-        RayTracer::Opaque* opaqueMaterial = dynamic_cast<RayTracer::Opaque*>(material.get());
-
-        if (opaqueMaterial)
+        if (material.IsOpaque)
         {
-            float shine = static_cast<float>(opaqueMaterial->GetShine());
-
-            ImGui::DragFloat("Shine", &shine, 0.01f, 0.0f, 1.0f);
-
-            opaqueMaterial->r_GetShine() = shine;
-        }
-        
-        RayTracer::Clear* clearMaterial = dynamic_cast<RayTracer::Clear*>(material.get());
-
-        if (clearMaterial)
-        {
-            float refractiveIndex = static_cast<float>(clearMaterial->GetRefractiveIndex());
-
-            ImGui::DragFloat("Refractive index", &refractiveIndex, 0.1f, 0.1f, 2.0f);
-
-            clearMaterial->r_GetRefractiveIndex() = refractiveIndex;
+            ImGui::DragFloat("Refractive index", &material.RefractiveIndex, 0.1f, 0.1f, 2.0f);
         }
 
         ImGui::PopID();
@@ -340,41 +302,29 @@ void AppLayer::OnRender()
 
     ImGui::Text("Objects");
 
-    for (uint32_t i = 0; i < m_Scene.GetObjects().size(); i++)
+    for (uint32_t i = 0; i < m_Scene.GetSpheres().size(); i++)
     {
         ImGui::PushID(i);
 
-        const std::unique_ptr<RayTracer::Object>& object = m_Scene.GetObjects()[i];
-        RayTracer::Sphere* sphere = dynamic_cast<RayTracer::Sphere*>(object.get());
+        RayTracer::Sphere& sphere = m_Scene.GetSpheres()[i];
 
-        if (sphere)
-        {
-            float sphereX = static_cast<float>(sphere->GetPosition().X);
-            float sphereY = static_cast<float>(sphere->GetPosition().Y);
-            float sphereZ = static_cast<float>(sphere->GetPosition().Z);
-            float sphereRadius = static_cast<float>(sphere->GetRadius());
-            int sphereMaterial = static_cast<int>(sphere->GetMaterialIndex());
+        int sphereMaterial = static_cast<int>(sphere.MaterialIndex);
 
-            ImGui::BulletText("Object %d (sphere)", i);
-            ImGui::DragFloat("Position X", &sphereX, 0.1f);
-            ImGui::DragFloat("Position Y", &sphereY, 0.1f);
-            ImGui::DragFloat("Position Z", &sphereZ, 0.1f);
-            ImGui::DragFloat("Radius", &sphereRadius, 0.1f, 0.0f, 1000.0f);
-            ImGui::DragInt("Material index", &sphereMaterial, 1.0f, 0, m_Scene.GetMaterialsCount() - 1);
+        ImGui::BulletText("Object %d (sphere)", i);
+        ImGui::DragFloat("Position X", &sphere.Position.X, 0.1f);
+        ImGui::DragFloat("Position Y", &sphere.Position.Y, 0.1f);
+        ImGui::DragFloat("Position Z", &sphere.Position.Z, 0.1f);
+        ImGui::DragFloat("Radius", &sphere.Radius, 0.1f, 0.0f, 1000.0f);
+        ImGui::DragInt("Material index", &sphereMaterial, 1.0f, 0, static_cast<int>(m_Scene.GetMaterials().size()) - 1);
 
-            sphere->r_GetPosition().X = sphereX;
-            sphere->r_GetPosition().Y = sphereY;
-            sphere->r_GetPosition().Z = sphereZ;
-            sphere->r_GetRadius() = sphereRadius;
-            sphere->r_GetMaterialIndex() = sphereMaterial;
-        }
+        sphere.MaterialIndex = sphereMaterial;
 
         ImGui::PopID();
     }
 
     if (ImGui::Button("Add sphere"))
     {
-        m_Scene.AddObject(RayTracer::Sphere({ 0.0, 0.0, 0.0 }, 0.5, 0));
+        m_Scene.AddSphere({ { 0.0f, 0.0f, 0.0f }, 0.5f, 0 });
     }
 
     ImGui::End();
@@ -384,7 +334,7 @@ void AppLayer::OnRender()
     m_ViewportWidth = static_cast<uint32_t>(ImGui::GetContentRegionAvail().x);
     m_ViewportHeight = static_cast<uint32_t>(ImGui::GetContentRegionAvail().y);
 
-    GUI::Image image = m_Renderer.GetImage();
+    GUI::Renderer::Image image = m_Renderer.GetImage();
 
     ImGui::Image(image.GetTexture(), ImVec2(static_cast<float>(image.GetWidth()), static_cast<float>(image.GetHeight())), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
 
