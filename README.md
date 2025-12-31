@@ -14,11 +14,13 @@ A real time application that renders ray traced images of scenes with spheres an
 - Focus peaking (sharpness highlighting)
 - Scene settings (materials, spheres positions and radiuses)
 - GPU rendering
+- Virtual pixel positions caching optimization
 
 ## Upcoming features
 
 - Export to PPM file (come back)
 - Triangles & complex scenes
+- AABB's optimization
 - Bloom
 - More control over scene from UI
 

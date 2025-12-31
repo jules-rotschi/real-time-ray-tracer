@@ -150,13 +150,16 @@ void AppLayer::OnRender()
     if (!m_Renderer.GetSettings().Preview)
     {
         int depth = m_Renderer.GetSettings().Depth;
+        int rays = m_Renderer.GetSettings().Rays;
 
         ImGui::Checkbox("Accumulate", &m_Renderer.GetSettings().Accumulation);
         ImGui::DragInt("Depth", &depth, 1.0f, 1, 100);
+        ImGui::DragInt("Rays per pixel", &rays, 1.0f, 1, 1000);
         ImGui::Checkbox("Antialiasing", &m_Renderer.GetSettings().Antialiasing);
         ImGui::Checkbox("Depth of field", &m_Renderer.GetSettings().DepthOfField);
 
         m_Renderer.GetSettings().Depth = depth;
+        m_Renderer.GetSettings().Rays = rays;
     }
 
     ImGui::Checkbox("Focus peaking", &m_Renderer.GetSettings().FocusPeaking);
@@ -345,16 +348,19 @@ void AppLayer::OnRender()
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
+    m_LastRenderTime = 0;
+    std::chrono::time_point<std::chrono::high_resolution_clock> startTime = std::chrono::high_resolution_clock::now();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    m_LastRenderTime += static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - startTime).count()) * 0.001 * 0.001;
 }
 
 void AppLayer::Render()
 {
     std::chrono::time_point<std::chrono::high_resolution_clock> startTime = std::chrono::high_resolution_clock::now();
-
     m_Renderer.OnResize(m_ViewportWidth, m_ViewportHeight);
     m_Camera.OnResize(m_ViewportWidth, m_ViewportHeight);
     m_Renderer.Render(m_Scene, m_Camera);
-
-    m_LastRenderTime = static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - startTime).count()) * 0.001 * 0.001;
+    m_Camera.SetVirtualPixelPositionsCached();
+    m_LastRenderTime += static_cast<double>(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - startTime).count()) * 0.001 * 0.001;
 }

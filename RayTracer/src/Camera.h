@@ -62,6 +62,8 @@ namespace RayTracer
 		void OnUpdate(bool& hasMoved);
 		void OnResize(uint32_t width, uint32_t height);
 
+		void SetVirtualPixelPositionsCached();
+
 	private:
 		Vector3 m_Position;
 		Trihedron m_Trihedron;
@@ -72,8 +74,7 @@ namespace RayTracer
 		uint32_t m_ImageWidth = 1;
 		uint32_t m_ImageHeight = 1;
 
-		std::vector<Vector3> m_VirtualPixelPositions;
-		float m_VirtualPixelDimension;
+		bool m_InvalidPixelPositions = true;
 
 		float m_LastFocalLength = m_Lens.FocalLength;
 		float m_LastFocusDistance = m_Lens.FocusDistance;

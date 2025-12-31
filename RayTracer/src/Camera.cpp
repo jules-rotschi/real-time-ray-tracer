@@ -122,6 +122,9 @@ namespace RayTracer
 			m_LastAperture = m_Lens.Aperture;
 			hasMoved = true;
 		}
+
+		if (hasMoved)
+			m_InvalidPixelPositions = true;
 	}
 
 	void Camera::OnResize(uint32_t width, uint32_t height)
@@ -131,5 +134,12 @@ namespace RayTracer
 
 		m_ImageWidth = width;
 		m_ImageHeight = height;
+
+		m_InvalidPixelPositions = true;
+	}
+
+	void Camera::SetVirtualPixelPositionsCached()
+	{
+		m_InvalidPixelPositions = false;
 	}
 }

@@ -34,6 +34,7 @@ namespace RayTracer
 			bool DepthOfField = true;
 			bool FocusPeaking = false;
 			uint32_t Depth = 20;
+			uint32_t Rays = 3;
 		};
 
 	public:
@@ -65,7 +66,8 @@ namespace RayTracer
 
 		ShaderDataManager m_ShaderDataManager;
 		GUI::Renderer::UniformBuffer<ShaderData> m_UniformBuffer;
-		GUI::Renderer::ShaderStorageBuffer<std::vector<LuminanceData>> m_ShaderStorageBuffer;
+		GUI::Renderer::ShaderStorageBuffer<VirtualPixelsData> m_VirtualPixelsBuffer;
+		GUI::Renderer::ShaderStorageBuffer<IntegratedLuminanceData> m_IntegratedLuminanceBuffer;
 
 		friend class ShaderDataManager;
 	};

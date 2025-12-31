@@ -9,6 +9,7 @@ struct RendererSettings
 	bool DepthOfField;
 	bool FocusPeaking;
 	uint Depth;
+	uint Rays;
 };
 
 struct Camera
@@ -67,12 +68,20 @@ struct HitPayload
 	uint MaterialIndex;
 };
 
+struct BoundingBox
+{
+	Interval X_Interval;
+	Interval Y_Interval;
+	Interval Z_Interval;
+};
+
 layout(rgba32f, binding = 0) uniform writeonly image2D outputImage;
 
 layout (std140, binding = 1) uniform data
 {
     RendererSettings settings;
 	uint frameIndex;
+	bool invalidPixelPositions;
 
 	Camera camera;
 
@@ -83,7 +92,13 @@ layout (std140, binding = 1) uniform data
 	uint spheresCount;
 };
 
-layout(std430, binding = 2) buffer integratedLuminanceBuffer
+layout(std430, binding = 2) buffer virtualPixelsBuffer
+{
+	float pixelDimension;
+	vec4 virtualPixelPositions[];
+};
+
+layout(std430, binding = 3) buffer integratedLuminanceBuffer
 {
 	vec4 integratedLuminance[];
 };
@@ -135,10 +150,67 @@ vec3 RandomVectorInUnitSphere(inout uint seed)
 	return normalize(vec3(radius * cos(longitude), radius * sin(longitude), z) * pow(RandomFloat(seed), 1/3));
 }
 
+Interval MakeBoundingInterval(Interval i1, Interval i2)
+{
+	float minimum = min(i1.Minimum, i2.Minimum);
+	float maximum = min(i1.Maximum, i2.Maximum);
+	return Interval(minimum, maximum);
+}
+
 bool DoesIntervalContain(float x, Interval i)
 {
 	return x >= i.Minimum && x <= i.Maximum;
 }
+
+bool DoIntervalsOverlap(Interval i1, Interval i2)
+{
+	float minimum = max(i1.Minimum, i2.Minimum);
+	float maximum = max(i1.Maximum, i2.Maximum);
+	return minimum < maximum;
+}
+
+//BoundingBox MakeBoundingBox(vec3 p1, vec3 p2)
+//{
+//	BoundingBox box;
+//
+//	box.X_Interval = (p1.x <= p2.x) ? Interval(p1.x, p2.x) : Interval(p2.x, p1.x);
+//	box.Y_Interval = (p1.y <= p2.y) ? Interval(p1.y, p2.y) : Interval(p2.y, p1.y);
+//	box.Z_Interval = (p1.z <= p2.z) ? Interval(p1.z, p2.z) : Interval(p2.z, p1.z);
+//
+//	return box;
+//}
+//
+//BoundingBox MakeBoundingBox(Sphere sphere)
+//{
+//	vec3 radiusVector = vec3(sphere.Radius, sphere.Radius, sphere.Radius);
+//	return MakeBoundingBox(vec3(sphere.Position) - radiusVector, vec3(sphere.Position) + radiusVector);
+//}
+//
+//BoundingBox MakeBoundingBox(BoundingBox box1, BoundingBox box2)
+//{
+//	BoundingBox result;
+//
+//	result.X_Interval = MakeBoundingInterval(box1.X_Interval, box2.X_Interval);
+//	result.Y_Interval = MakeBoundingInterval(box1.Y_Interval, box2.Y_Interval);
+//	result.Z_Interval = MakeBoundingInterval(box1.Z_Interval, box2.Z_Interval);
+//
+//	return result;
+//}
+//
+//BoundingBox MakeSceneBoundingBox()
+//{
+//	BoundingBox box;
+//	box.X_Interval = Interval(0.0, 0.0);
+//	box.Y_Interval = Interval(0.0, 0.0);
+//	box.Z_Interval = Interval(0.0, 0.0);
+//
+//	for (uint i = 0; i < spheresCount; i++)
+//	{
+//		box = MakeBoundingBox(box, MakeBoundingBox(spheres[i]));
+//	}
+//
+//	return box;
+//}
 
 void SetFaceNormal(inout HitPayload hit, Ray ray, vec3 outwardNormal)
 {
@@ -175,7 +247,7 @@ vec3 GetRayOrigin(inout uint seed)
 	return vec3(camera.Position) + RandomVectorInUnitDisk(seed) * apertureRadius;
 }
 
-vec3 GetVirtualPixelPosition(uint x, uint y, out float pixelDimension)
+void ComputeVirtualPixelPosition(uint x, uint y)
 {
 	float sensorRatio = camera.SensorWidth / camera.SensorHeight;
 	float imageRatio = float(imageSize(outputImage).x) / float(imageSize(outputImage).y);
@@ -206,19 +278,20 @@ vec3 GetVirtualPixelPosition(uint x, uint y, out float pixelDimension)
 	vec3 pixelCenter =
 		pixelBegin + (pixelDimension / 2) * vec3(camera.E1 - camera.E2);
 
-	return pixelCenter;
+	virtualPixelPositions[x + y * imageSize(outputImage).x] = vec4(pixelCenter, 0.0);
 }
 
 vec3 GetVirtualPixelPosition(uint x, uint y)
 {
-	float _ = 0.0;
-	return GetVirtualPixelPosition(x, y, _);
+	if (invalidPixelPositions)
+		ComputeVirtualPixelPosition(x, y);
+
+	return vec3(virtualPixelPositions[x + y * imageSize(outputImage).x]);
 }
 
 vec3 GetVirtualPixelPosition(uint x, uint y, inout uint seed)
 {
-	float pixelDimension = 0.0;
-	vec3 pixelCenter = GetVirtualPixelPosition(x, y, pixelDimension);
+	vec3 pixelCenter = GetVirtualPixelPosition(x, y);
 
 	if (!settings.Antialiasing)
 		return pixelCenter;
@@ -294,6 +367,32 @@ bool ScatterRay(Ray incidentRay, HitPayload hit, inout Ray scatteredRay, inout u
 		return true;
 	}
 }
+
+bool RayIntervalIntersection(Interval axisInterval, float rayOriginComponent, float rayDirectionComponent, inout Interval tInterval)
+{
+	float t0 = (axisInterval.Minimum - rayOriginComponent) / rayDirectionComponent;
+	float t1 = (axisInterval.Maximum - rayOriginComponent) / rayDirectionComponent;
+
+	if (t0 < t1)
+	{
+		if (t0 > tInterval.Minimum) tInterval.Minimum = t0;
+		if (t1 < tInterval.Maximum) tInterval.Maximum = t1;
+	}
+	else
+	{
+		if (t1 > tInterval.Minimum) tInterval.Minimum = t1;
+		if (t0 < tInterval.Maximum) tInterval.Maximum = t0;
+	}
+
+	return (tInterval.Maximum > tInterval.Minimum);
+}
+
+//bool RayBoxIntersection(BoundingBox box, Ray ray, Interval tInterval)
+//{
+//	return RayIntervalIntersection(box.X_Interval, ray.Origin.x, ray.Direction.x, tInterval)
+//		&& RayIntervalIntersection(box.Y_Interval, ray.Origin.y, ray.Direction.y, tInterval)
+//		&& RayIntervalIntersection(box.Z_Interval, ray.Origin.z, ray.Direction.z, tInterval);
+//}
 
 bool RayIntersection(Sphere sphere, Ray ray, Interval tInterval, inout HitPayload hit)
 {
@@ -388,7 +487,6 @@ vec3 ComputeIllumination(Ray incidentRay, HitPayload hit, inout uint seed)
 		seed++;
 
 		illumination += (ownLight + directIllumination) * contribution;
-
 		contribution *= vec3(materials[nextHit.MaterialIndex].Albedo);
 
 		incidentRay = scatteredRay;
@@ -400,19 +498,43 @@ vec3 ComputeIllumination(Ray incidentRay, HitPayload hit, inout uint seed)
 
 vec3 ComputePixelLuminance(uint x, uint y, inout uint seed)
 {
-	vec3 rayOrigin = GetRayOrigin(seed);
-	vec3 rayDirection = normalize(GetVirtualPixelPosition(x, y, seed) - rayOrigin);
-	Ray ray = { rayOrigin, rayDirection, 1.0f };
+	vec3 frameIntagratedLuminance = vec3(0.0);
 
-	HitPayload hit = TraceRay(ray);
+	for (uint i = 0; i < settings.Rays; i++)
+	{
+		seed++;
+
+		vec3 rayOrigin = GetRayOrigin(seed);
+		vec3 rayDirection = normalize(GetVirtualPixelPosition(x, y, seed) - rayOrigin);
+		Ray ray = { rayOrigin, rayDirection, 1.0 };
+
+		HitPayload hit = TraceRay(ray);
+
+		vec3 instantLuminance = vec3(0.0);
 		
-	if (hit.T <= 0.0f)
-		return vec3(skyColor);
+		if (hit.T <= 0.0f)
+		{
+			instantLuminance = vec3(skyColor);
+		}
+		else
+		{
+			vec3 instantIllumination = ComputeIllumination(ray, hit, seed);
+			instantLuminance = instantIllumination * vec3(materials[hit.MaterialIndex].Albedo / PI);
+		}
 
-	vec3 illumination = ComputeIllumination(ray, hit, seed);
-	vec3 luminance = illumination * vec3(materials[hit.MaterialIndex].Albedo / PI);
+		frameIntagratedLuminance += instantLuminance;
+	}
+	
+	vec3 frameContinuousLuminance = frameIntagratedLuminance / settings.Rays;
 
-	return luminance;
+	if (frameIndex == 1)
+		integratedLuminance[x + y * imageSize(outputImage).x] = vec4(0.0);
+
+	integratedLuminance[x + y * imageSize(outputImage).x] += vec4(frameContinuousLuminance, 0.0);
+
+	vec3 continuousLuminance = vec3(integratedLuminance[x + y * imageSize(outputImage).x] / frameIndex);
+
+	return continuousLuminance;
 }
 
 vec4 GetRayTracedPixel(uint x, uint y)
@@ -420,15 +542,9 @@ vec4 GetRayTracedPixel(uint x, uint y)
 	uint seed = x + y * imageSize(outputImage).x;
 	seed *= frameIndex;
 
-	vec3 instantLuminance = ComputePixelLuminance(x, y, seed);
+	vec3 luminance = ComputePixelLuminance(x, y, seed);
 
-	if (frameIndex == 1)
-		integratedLuminance[x + y * imageSize(outputImage).x] = vec4(0.0);
-
-	integratedLuminance[x + y * imageSize(outputImage).x] += vec4(instantLuminance, 0.0);
-
-	vec3 continuousLuminance = vec3(integratedLuminance[x + y * imageSize(outputImage).x] / frameIndex);
-	return GetPixel(continuousLuminance);
+	return GetPixel(luminance);
 }
 
 vec4 GetPreviewPixel(uint x, uint y)
@@ -456,7 +572,7 @@ vec4 GetPreviewPixel(uint x, uint y)
 		return vec4(depthInvert, depthInvert, depthInvert, 1.0);
 	}
 
-	vec3 illumination;
+	vec3 illumination = vec3(0.0);
 
 	for (uint i = 0; i < spheresCount; i++)
 	{
@@ -487,5 +603,5 @@ void main()
 	if (settings.FocusPeaking && IsPixelOnFocusSphere(pixelCoord.x, pixelCoord.y))
 		value = vec4(1.0, 0.0, 0.0, 1.0);
 
-    imageStore(outputImage, pixelCoord, value);
+	imageStore(outputImage, pixelCoord, value);
 }

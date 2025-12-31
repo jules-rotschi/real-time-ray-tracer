@@ -19,7 +19,9 @@ namespace RayTracer
 		m_Data.Settings.DepthOfField = renderer.m_Settings.DepthOfField;
 		m_Data.Settings.FocusPeaking = renderer.m_Settings.FocusPeaking;
 		m_Data.Settings.Depth = renderer.m_Settings.Depth;
+		m_Data.Settings.Rays = renderer.m_Settings.Rays;
 		m_Data.FrameIndex = renderer.m_FrameIndex;
+		m_Data.InvalidPixelPositions = renderer.m_Camera->m_InvalidPixelPositions;
 
 		m_Data.Camera.Position = renderer.m_Camera->m_Position;
 		m_Data.Camera.E1 = renderer.m_Camera->m_Trihedron.E1;

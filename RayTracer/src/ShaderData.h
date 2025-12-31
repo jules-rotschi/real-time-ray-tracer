@@ -39,9 +39,8 @@ namespace RayTracer
 		uint32_t Antialiasing = true;
 		uint32_t DepthOfField = true;
 		uint32_t FocusPeaking = false;
-		uint32_t Depth = 5;
-
-		uint32_t _padding = 0;
+		uint32_t Depth = 1;
+		uint32_t Rays = 1;
 	};
 	static_assert(sizeof(RendererSettings) == 2 * 16);
 
@@ -93,33 +92,38 @@ namespace RayTracer
 
 	struct ShaderData
 	{
-		RendererSettings Settings;    // 0 + 32 = 32
-		uint32_t FrameIndex = 1;      // 32 + 4 = 36
+		RendererSettings Settings;			 // 32
+		uint32_t FrameIndex = 1;			 // 36
+		uint32_t InvalidPixelPositions = 0;  // 40
 
-		uint32_t _padding1[3];	      // 36 + 12 = 48
+		uint32_t _padding1[2];				 // 48
 
-		CameraData Camera;		      // 48 + 112 = 160
+		CameraData Camera;					 // 160
 
-		Vec4 SkyColor;				  // 160 + 16 = 176
+		Vec4 SkyColor;						 // 176
 		
-		MaterialData Materials[10];	  // 176 + 10 * 64 = 816
-		uint32_t MaterialsCount = 0;  // 816 + 4 = 820
+		MaterialData Materials[10];			 // 816
+		uint32_t MaterialsCount = 0;		 // 820
 
-		uint32_t _padding2[3];		  // 820 + 12 = 832
+		uint32_t _padding2[3];				 // 832
 
-		SphereData Spheres[10];		  // 832 + 10 * 32 = 1152
-		uint32_t SpheresCount = 0;	  // 1152 + 4 = 1156
+		SphereData Spheres[10];				 // 1152
+		uint32_t SpheresCount = 0;			 // 1156
 
-		uint32_t _padding3[3];		  // 1156 + 12 = 1168
+		uint32_t _padding3[3];				 // 1168
 	};
 	static_assert(sizeof(ShaderData) == 73 * 16);
 
-	struct LuminanceData
+	struct VirtualPixelsData
 	{
-		float R = 0.0f;
-		float G = 0.0f;
-		float B = 0.0f;
-		float _padding = 0.0f;
+		float PixelDimension;
+		float _padding[3];
+		std::vector<Vec4> VirtualPixelPositions;
+	};
+
+	struct IntegratedLuminanceData
+	{
+		std::vector<Vec4> IntegratedLuminanceData;
 	};
 
 	class ShaderDataManager

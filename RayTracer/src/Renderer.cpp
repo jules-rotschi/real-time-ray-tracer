@@ -22,7 +22,8 @@ namespace RayTracer
 		m_UniformBuffer.BindTo(1);
 		m_UniformBuffer.SetData(m_ShaderDataManager.GetData());
 
-		m_ShaderStorageBuffer.BindTo(2);
+		m_VirtualPixelsBuffer.BindTo(2);
+		m_IntegratedLuminanceBuffer.BindTo(3);
 
 		const GLuint workGroupSizeX = 16;
 		const GLuint workGroupSizeY = 16;
@@ -32,7 +33,7 @@ namespace RayTracer
 
 		glDispatchCompute(numGroupsX, numGroupsY, 1);
 
-		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+		//glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 		if (!m_Settings.Preview)
 		{
@@ -59,7 +60,8 @@ namespace RayTracer
 
 		m_Image.Resize(width, height);
 
-		m_ShaderStorageBuffer.Resize(width * height * sizeof(LuminanceData));
+		m_VirtualPixelsBuffer.Resize(16 + static_cast<size_t>(width * height) * sizeof(Vec4));
+		m_IntegratedLuminanceBuffer.Resize(static_cast<size_t>(width * height) * sizeof(Vec4));
 
 		ResetFrameIndex();
 	}
