@@ -39,7 +39,7 @@ namespace RayTracer
 
 		m_Data.SkyColor = renderer.m_Scene->m_SkyColor;
 
-		m_Data.MaterialsCount = static_cast<uint32_t>(renderer.m_Scene->GetMaterials().size());
+		m_Data.MaterialCount = static_cast<uint32_t>(renderer.m_Scene->GetMaterials().size());
 
 		for (uint32_t i = 0; i < renderer.m_Scene->GetMaterials().size(); i++)
 		{
@@ -51,13 +51,30 @@ namespace RayTracer
 			m_Data.Materials[i].RefractiveIndex = renderer.m_Scene->GetMaterials()[i].RefractiveIndex;
 		}
 
-		m_Data.SpheresCount = static_cast<uint32_t>(renderer.m_Scene->GetSpheres().size());
+		m_Data.SphereCount = static_cast<uint32_t>(renderer.m_Scene->GetSpheres().size());
 
 		for (uint32_t i = 0; i < renderer.m_Scene->GetSpheres().size(); i++)
 		{
 			m_Data.Spheres[i].Position = renderer.m_Scene->GetSpheres()[i].Position;
 			m_Data.Spheres[i].Radius = renderer.m_Scene->GetSpheres()[i].Radius;
 			m_Data.Spheres[i].MaterialIndex = renderer.m_Scene->GetSpheres()[i].MaterialIndex;
+		}
+
+		const std::vector<Mesh>& sceneMeshes = renderer.m_Scene->GetMeshes();
+
+		m_Data.MeshCount = static_cast<uint32_t>(sceneMeshes.size());
+
+		for (uint32_t i = 0; i < sceneMeshes.size(); i++)
+		{
+			m_Data.Meshes[i].TriangleCount = sceneMeshes[i].Triangles.size();
+
+			for (uint32_t j = 0; j < sceneMeshes[i].Triangles.size(); j++)
+			{
+				m_Data.Meshes[i].Triangles[j].V0 = sceneMeshes[i].Triangles[j].V0;
+				m_Data.Meshes[i].Triangles[j].V1 = sceneMeshes[i].Triangles[j].V1;
+				m_Data.Meshes[i].Triangles[j].V2 = sceneMeshes[i].Triangles[j].V2;
+				m_Data.Meshes[i].Triangles[j].MaterialIndex = sceneMeshes[i].Triangles[j].MaterialIndex;
+			}
 		}
 	}
 

@@ -12,6 +12,7 @@ namespace GUI::Renderer
 		Shader(const std::filesystem::path& path);
 
 		void Use() const;
+		void Compute(GLuint numGroupsX, GLuint numGroupsY, GLuint numGroupsZ, GLbitfield barriers) const;
 
 	private:
 		GLuint m_ShaderHandle = 0;

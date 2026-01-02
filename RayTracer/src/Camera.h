@@ -50,6 +50,8 @@ namespace RayTracer
 		void AddNDFilter(float density);
 		void RemoveNDFilter(float density);
 
+		float GetExposure() const;
+
 		void ResetSettings();
 
 		void MoveForward(double dt);

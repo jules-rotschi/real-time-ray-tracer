@@ -55,6 +55,7 @@ AppLayer::AppLayer()
     m_Scene.AddSphere({ { 0.0f, 0.0f, 0.0f }, 0.5f, glass });
     m_Scene.AddSphere({ { -3.0f, 2.0f, 2.0f }, 1.0f, whiteLight }); // key light
     m_Scene.AddSphere({ { 3.0f, 150.0f, -150.0f }, 50.0f, warmLight }); // back light
+    m_Scene.AddBlock({ 0.0f, 1.0f, -5.0f }, { 3.0f, 0.0f, 0.0f }, { 0.0f, 2.0f, 0.0f }, { 0.0f, 0.0f, 3.0f }, glass);
 }
 
 void AppLayer::OnUpdate(double dt)
@@ -157,6 +158,7 @@ void AppLayer::OnRender()
         ImGui::DragInt("Rays per pixel", &rays, 1.0f, 1, 1000);
         ImGui::Checkbox("Antialiasing", &m_Renderer.GetSettings().Antialiasing);
         ImGui::Checkbox("Depth of field", &m_Renderer.GetSettings().DepthOfField);
+        ImGui::Checkbox("Bloom", &m_Renderer.GetSettings().Bloom);
 
         m_Renderer.GetSettings().Depth = depth;
         m_Renderer.GetSettings().Rays = rays;
@@ -337,9 +339,9 @@ void AppLayer::OnRender()
     m_ViewportWidth = static_cast<uint32_t>(ImGui::GetContentRegionAvail().x);
     m_ViewportHeight = static_cast<uint32_t>(ImGui::GetContentRegionAvail().y);
 
-    GUI::Renderer::Image image = m_Renderer.GetImage();
+    const GUI::Renderer::Image& image = m_Renderer.GetFinalImage();
 
-    ImGui::Image(image.GetTexture(), ImVec2(static_cast<float>(image.GetWidth()), static_cast<float>(image.GetHeight())), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+    ImGui::Image(image.GetTexture().GetHandle(), ImVec2(static_cast<float>(image.GetWidth()), static_cast<float>(image.GetHeight())), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
 
     ImGui::End();
 

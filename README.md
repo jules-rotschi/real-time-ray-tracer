@@ -4,6 +4,7 @@ A real time application that renders ray traced images of scenes with spheres an
 
 ## Features
 
+- Spheres & triangles rendering
 - Opaque material (whith albedo, roughness and shine parameters)
 - Clear material (whith albedo, roughness and refractive index parameters)
 - Emissive material (whith emitted color parameter)
@@ -12,16 +13,15 @@ A real time application that renders ray traced images of scenes with spheres an
 - Camera moves (translation and rotation)
 - Camera realistic settings (exposure, focal length, depth of field)
 - Focus peaking (sharpness highlighting)
-- Scene settings (materials, spheres positions and radiuses)
-- GPU rendering
+- GPU computation
 - Virtual pixel positions caching optimization
 
 ## Upcoming features
 
-- Export to PPM file (come back)
-- Triangles & complex scenes
+- Bloom (work in progress)
+- CPU optimization
 - AABB's optimization
-- Bloom
+- Export to PPM file (feature come back)
 - More control over scene from UI
 
 ## Buiding

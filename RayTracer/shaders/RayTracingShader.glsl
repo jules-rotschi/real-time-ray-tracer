@@ -46,6 +46,20 @@ struct Sphere
 	uint MaterialIndex;
 };
 
+struct Triangle
+{
+	vec4 V0;
+	vec4 V1;
+	vec4 V2;
+	uint MaterialIndex;
+};
+
+struct Mesh
+{
+	Triangle Triangles[20];
+	uint TriangleCount;
+};
+
 struct Interval
 {
 	float Minimum;
@@ -77,7 +91,7 @@ struct BoundingBox
 
 layout(rgba32f, binding = 0) uniform writeonly image2D outputImage;
 
-layout (std140, binding = 1) uniform data
+layout(std140, binding = 1) uniform data
 {
     RendererSettings settings;
 	uint frameIndex;
@@ -87,9 +101,11 @@ layout (std140, binding = 1) uniform data
 
 	vec4 skyColor;
 	Material materials[10];
-	uint materialsCount;
+	uint materialCount;
 	Sphere spheres[10];
-	uint spheresCount;
+	uint sphereCount;
+	Mesh meshes[10];
+	uint meshCount;
 };
 
 layout(std430, binding = 2) buffer virtualPixelsBuffer
@@ -216,26 +232,6 @@ void SetFaceNormal(inout HitPayload hit, Ray ray, vec3 outwardNormal)
 {
 	hit.FrontFace = dot(ray.Direction, outwardNormal) < 0;
 	hit.UnitNormal = faceforward(outwardNormal, ray.Direction, outwardNormal);
-}
-
-float GetExposure()
-{
-	return camera.Sensitivity * camera.ShutterSpeed / (270 * camera.Aperture * camera.Aperture * pow(10, camera.NeutralDensityValue));
-}
-
-vec4 GetPixel(vec3 luminance)
-{
-	vec3 linearValue = luminance * PI * GetExposure() / 0.89;
-	linearValue.r = linearValue.r > 1 ? 1 : linearValue.r;
-	linearValue.g = linearValue.g > 1 ? 1 : linearValue.g;
-	linearValue.b = linearValue.b > 1 ? 1 : linearValue.b;
-
-	vec3 gammaCorrectedValue;
-	gammaCorrectedValue.r = pow(linearValue.r, camera.Gamma);
-	gammaCorrectedValue.g = pow(linearValue.g, camera.Gamma);
-	gammaCorrectedValue.b = pow(linearValue.b, camera.Gamma);
-
-	return vec4(gammaCorrectedValue, 1.0);
 }
 
 vec3 GetRayOrigin(inout uint seed)
@@ -426,18 +422,87 @@ bool RayIntersection(Sphere sphere, Ray ray, Interval tInterval, inout HitPayloa
 	return true;
 }
 
+bool RayIntersection(Triangle triangle, Ray ray, Interval tInterval, inout HitPayload hit)
+{
+	vec3 normal = cross(vec3(triangle.V1 - triangle.V0), vec3(triangle.V2 - triangle.V0));
+
+	float dotRayNormal = dot(normal, ray.Direction);
+
+	if (dotRayNormal == 0)
+		return false;
+
+	float d = -dot(normal, vec3(triangle.V0));
+		
+	float t = -(dot(normal, ray.Origin) + d) / dotRayNormal;
+
+	if (!DoesIntervalContain(t, tInterval))
+		return false;
+
+	vec3 hitPosition = ray.Origin + t * ray.Direction;
+
+	vec3 pTriangleNormal = vec3(0.0);
+
+	vec3 v0_P = hitPosition - vec3(triangle.V0);
+	pTriangleNormal = cross(vec3(triangle.V1 - triangle.V0), v0_P);
+	if (dot(normal, pTriangleNormal) < 0) return false;
+
+	vec3 v1_P = hitPosition - vec3(triangle.V1);
+	pTriangleNormal = cross(vec3(triangle.V2 - triangle.V1), v1_P);
+	if (dot(normal, pTriangleNormal) < 0) return false;
+
+	vec3 v2_P = hitPosition - vec3(triangle.V2);
+	pTriangleNormal = cross(vec3(triangle.V0 - triangle.V2), v2_P);
+	if (dot(normal, pTriangleNormal) < 0) return false;
+
+	hit.T = t;
+	hit.Position = hitPosition;
+	SetFaceNormal(hit, ray, normalize(normal));
+	hit.MaterialIndex = triangle.MaterialIndex;
+
+	return true;
+}
+
+bool RayIntersection(Mesh mesh, Ray ray, Interval tInterval, inout HitPayload hit)
+{
+	bool intersection = false;
+
+	float tMin = 1e-3;
+	float closest = 1.0/0.0;
+
+	for (uint i = 0; i < mesh.TriangleCount; i++)
+	{
+		Triangle triangle = mesh.Triangles[i];
+		if (RayIntersection(triangle, ray, Interval(tMin, closest), hit))
+		{
+			intersection = true;
+			closest = hit.T;
+		}
+	}
+
+	return intersection;
+}
+
 HitPayload TraceRay(Ray ray)
 {
 	float tMin = 1e-3;
+	float closest = 1.0/0.0;
 
 	HitPayload hit;
 	hit.T = -1;
-	float closest = 1.0/0.0;
 
-	for (uint i = 0; i < spheresCount; i++)
+	for (uint i = 0; i < sphereCount; i++)
 	{
 		Sphere sphere = spheres[i];
 		if (RayIntersection(sphere, ray, Interval(tMin, closest), hit))
+		{
+			closest = hit.T;
+		}
+	}
+
+	for (uint i = 0; i < meshCount; i++)
+	{
+		Mesh mesh = meshes[i];
+		if (RayIntersection(mesh, ray, Interval(tMin, closest), hit))
 		{
 			closest = hit.T;
 		}
@@ -537,17 +602,17 @@ vec3 ComputePixelLuminance(uint x, uint y, inout uint seed)
 	return continuousLuminance;
 }
 
-vec4 GetRayTracedPixel(uint x, uint y)
+vec3 GetRayTracedLuminance(uint x, uint y)
 {
 	uint seed = x + y * imageSize(outputImage).x;
 	seed *= frameIndex;
 
 	vec3 luminance = ComputePixelLuminance(x, y, seed);
 
-	return GetPixel(luminance);
+	return luminance;
 }
 
-vec4 GetPreviewPixel(uint x, uint y)
+vec3 GetPreviewLuminance(uint x, uint y)
 {
 	vec3 rayOrigin = vec3(camera.Position);
 	vec3 rayDirection = normalize(GetVirtualPixelPosition(x, y) - rayOrigin);
@@ -560,21 +625,21 @@ vec4 GetPreviewPixel(uint x, uint y)
 		switch (settings.PreviewMode)
 		{
 		case 1:
-			return vec4(0.0, 0.0, 0.0, 1.0);
+			return vec3(0.0);
 		case 2:
-			return GetPixel(vec3(skyColor));
+			return vec3(skyColor);
 		}
 	}
 
 	if (settings.PreviewMode == 1)
 	{
 		float depthInvert = hit.T < 1.0 ? 1.0 : 1.0 / hit.T;
-		return vec4(depthInvert, depthInvert, depthInvert, 1.0);
+		return vec3(depthInvert);
 	}
 
 	vec3 illumination = vec3(0.0);
 
-	for (uint i = 0; i < spheresCount; i++)
+	for (uint i = 0; i < sphereCount; i++)
 	{
 		Sphere sphere = spheres[i];
 
@@ -587,7 +652,7 @@ vec4 GetPreviewPixel(uint x, uint y)
 
 	vec3 luminance = illumination * vec3(materials[hit.MaterialIndex].Albedo / PI);
 
-	return GetPixel(luminance);
+	return luminance;
 }
 
 void main()
@@ -596,9 +661,9 @@ void main()
     ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
 	
     if (settings.Preview)
-		value = GetPreviewPixel(pixelCoord.x, pixelCoord.y);
+		value = vec4(GetPreviewLuminance(pixelCoord.x, pixelCoord.y), 1.0);
 	else
-		value = GetRayTracedPixel(pixelCoord.x, pixelCoord.y);
+		value = vec4(GetRayTracedLuminance(pixelCoord.x, pixelCoord.y), 1.0);
 
 	if (settings.FocusPeaking && IsPixelOnFocusSphere(pixelCoord.x, pixelCoord.y))
 		value = vec4(1.0, 0.0, 0.0, 1.0);

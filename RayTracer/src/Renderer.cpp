@@ -7,15 +7,18 @@
 namespace RayTracer
 {
 	Renderer::Renderer()
-		: m_Image(0, 0), m_Shader("RayTracer/shaders/RayTracingShader.glsl") {}
+		: m_RayTracingShader("RayTracer/shaders/RayTracingShader.glsl"),
+		  m_CameraShader("RayTracer/shaders/CameraShader.glsl"),
+		  m_FinalImage(0, 0) {}
 
 	void Renderer::Render(const Scene& scene, const Camera& camera)
 	{
 		m_Scene = &scene;
 		m_Camera = &camera;
 
-		m_Shader.Use();
-		glBindImageTexture(0, static_cast<GLuint>(m_Image.GetTexture()), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+		m_RayTracingShader.Use();
+
+		glBindImageTexture(0, m_RayTracedTexture.GetHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
 		m_ShaderDataManager.UpdateData(*this);
 
@@ -28,12 +31,29 @@ namespace RayTracer
 		const GLuint workGroupSizeX = 16;
 		const GLuint workGroupSizeY = 16;
 
-		GLuint numGroupsX = (m_Image.GetWidth() + workGroupSizeX - 1) / workGroupSizeX;
-		GLuint numGroupsY = (m_Image.GetHeight() + workGroupSizeY - 1) / workGroupSizeY;
+		GLuint numGroupsX = (m_FinalImage.GetWidth() + workGroupSizeX - 1) / workGroupSizeX;
+		GLuint numGroupsY = (m_FinalImage.GetHeight() + workGroupSizeY - 1) / workGroupSizeY;
 
-		glDispatchCompute(numGroupsX, numGroupsY, 1);
+		m_RayTracingShader.Compute(numGroupsX, numGroupsY, 1, GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-		//glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+		if (m_Settings.Bloom)
+			m_BloomRenderer.Render(m_RayTracedTexture, 0.005f);
+
+		m_CameraShader.Use();
+
+		if (m_Settings.Bloom)
+			glBindImageTexture(0, m_BloomRenderer.GetFinalTexture().GetHandle(), 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+		else
+			glBindImageTexture(0, m_RayTracedTexture.GetHandle(), 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+
+		glBindImageTexture(1, m_FinalImage.GetTexture().GetHandle(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+		glUniform1f(0, camera.GetExposure());
+		glUniform1f(1, camera.GetSensor().Gamma);
+
+		m_CameraShader.Compute(numGroupsX, numGroupsY, 1, GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+		// Focus peaking shader
 
 		if (!m_Settings.Preview)
 		{
@@ -55,10 +75,12 @@ namespace RayTracer
 	void Renderer::OnResize(uint32_t width, uint32_t height)
 	{
 		// No resize necessary
-		if (m_Image.GetWidth() == width && m_Image.GetHeight() == height)
+		if (m_FinalImage.GetWidth() == width && m_FinalImage.GetHeight() == height)
 			return;
 
-		m_Image.Resize(width, height);
+		m_RayTracedTexture.Resize(width, height);
+		m_BloomRenderer.OnResize(width, height);
+		m_FinalImage.Resize(width, height);
 
 		m_VirtualPixelsBuffer.Resize(16 + static_cast<size_t>(width * height) * sizeof(Vec4));
 		m_IntegratedLuminanceBuffer.Resize(static_cast<size_t>(width * height) * sizeof(Vec4));
@@ -66,9 +88,9 @@ namespace RayTracer
 		ResetFrameIndex();
 	}
 
-	GUI::Renderer::Image Renderer::GetImage() const
+	const GUI::Renderer::Image& Renderer::GetFinalImage() const
 	{
-		return m_Image;
+		return m_FinalImage;
 	}
 
 	Renderer::Settings& Renderer::GetSettings()

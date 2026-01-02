@@ -90,6 +90,26 @@ namespace RayTracer
 	};
 	static_assert(sizeof(SphereData) == 2 * 16);
 
+	struct TriangleData
+	{
+		Vec4 V0;
+		Vec4 V1;
+		Vec4 V2;
+		uint32_t MaterialIndex = 0;
+
+		uint32_t _padding[3];
+	};
+	static_assert(sizeof(TriangleData) == 4 * 16);
+
+	struct MeshData
+	{
+		TriangleData Triangles[20];
+		uint32_t TriangleCount = 0;
+
+		uint32_t _padding[3];
+	};
+	static_assert(sizeof(MeshData) == 81 * 16);
+
 	struct ShaderData
 	{
 		RendererSettings Settings;			 // 32
@@ -103,16 +123,21 @@ namespace RayTracer
 		Vec4 SkyColor;						 // 176
 		
 		MaterialData Materials[10];			 // 816
-		uint32_t MaterialsCount = 0;		 // 820
+		uint32_t MaterialCount = 0;			 // 820
 
 		uint32_t _padding2[3];				 // 832
 
 		SphereData Spheres[10];				 // 1152
-		uint32_t SpheresCount = 0;			 // 1156
+		uint32_t SphereCount = 0;			 // 1156
 
 		uint32_t _padding3[3];				 // 1168
+
+		MeshData Meshes[10];				 // 14128
+		uint32_t MeshCount = 0;				 // 14132
+
+		uint32_t _padding4[3];				 // 14144
 	};
-	static_assert(sizeof(ShaderData) == 73 * 16);
+	static_assert(sizeof(ShaderData) == 884 * 16);
 
 	struct VirtualPixelsData
 	{

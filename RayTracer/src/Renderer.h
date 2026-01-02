@@ -8,6 +8,7 @@
 #include "renderer/ShaderStorageBuffer.h"
 
 #include "ShaderData.h"
+#include "BloomRenderer.h"
 
 namespace RayTracer
 {
@@ -33,8 +34,9 @@ namespace RayTracer
 			bool Antialiasing = true;
 			bool DepthOfField = true;
 			bool FocusPeaking = false;
-			uint32_t Depth = 20;
-			uint32_t Rays = 3;
+			uint32_t Depth = 10;
+			uint32_t Rays = 1;
+			bool Bloom = false;
 		};
 
 	public:
@@ -45,7 +47,7 @@ namespace RayTracer
 		void OnUpdate(double dt);
 		void OnResize(uint32_t width, uint32_t height);
 
-		GUI::Renderer::Image GetImage() const;
+		const GUI::Renderer::Image& GetFinalImage() const;
 
 		Settings& GetSettings();
 
@@ -61,8 +63,14 @@ namespace RayTracer
 		uint32_t m_FrameIndex = 1;
 		float m_AccumulationTime = 0.0;
 
-		GUI::Renderer::Image m_Image;
-		GUI::Renderer::Shader m_Shader;
+		GUI::Renderer::Texture m_RayTracedTexture;
+
+		GUI::Renderer::Shader m_RayTracingShader;
+		GUI::Renderer::Shader m_CameraShader;
+		
+		BloomRenderer m_BloomRenderer;
+		
+		GUI::Renderer::Image m_FinalImage;
 
 		ShaderDataManager m_ShaderDataManager;
 		GUI::Renderer::UniformBuffer<ShaderData> m_UniformBuffer;

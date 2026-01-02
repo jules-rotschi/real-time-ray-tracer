@@ -11,29 +11,12 @@ namespace GUI::Renderer
 
     void Image::Resize(uint32_t width, uint32_t height)
     {
-        GLuint texture = m_Texture.GetHandle();
-        glDeleteTextures(1, &texture);
-        m_Texture = Texture(width, height);
+        m_Texture.Resize(width, height);
     }
 
-    void Image::SetData(const uint8_t* pixelBuffer) const
+    const Texture& Image::GetTexture() const
     {
-        glBindTexture(GL_TEXTURE_2D, m_Texture.GetHandle());
-        glTexSubImage2D(
-            GL_TEXTURE_2D,
-            0,
-            0, 0,
-            GetWidth(),
-            GetHeight(),
-            GL_RGBA,
-            GL_UNSIGNED_BYTE,
-            pixelBuffer
-        );
-    }
-
-    ImTextureID Image::GetTexture() const
-    {
-        return m_Texture.GetHandle();
+        return m_Texture;
     }
 
     uint32_t Image::GetWidth() const

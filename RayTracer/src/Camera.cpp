@@ -70,6 +70,12 @@ namespace RayTracer
 		m_NeutralDensityValue -= density;
 	}
 
+	float Camera::GetExposure() const
+	{
+		return static_cast<float>(m_Sensor.Sensitivity) * m_ShutterSpeed
+			/ (270.0f * m_Lens.Aperture * m_Lens.Aperture * powf(10, m_NeutralDensityValue));
+	}
+
 	void Camera::ResetSettings()
 	{
 		m_Sensor = Sensor{};

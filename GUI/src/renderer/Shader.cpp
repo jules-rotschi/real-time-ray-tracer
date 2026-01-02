@@ -75,4 +75,10 @@ namespace GUI::Renderer
 	{
 		glUseProgram(m_ProgramHandle);
 	}
+
+	void Shader::Compute(GLuint numGroupsX, GLuint numGroupsY, GLuint numGroupsZ, GLbitfield barriers) const
+	{
+		glDispatchCompute(numGroupsX, numGroupsY, numGroupsZ);
+		glMemoryBarrier(barriers);
+	}
 }
